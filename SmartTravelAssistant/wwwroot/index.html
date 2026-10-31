@@ -1,0 +1,115 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Smart Travel Multi-Agent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+    <div class="max-w-4xl mx-auto space-y-8">
+
+        <!-- Header / Pitch Section -->
+        <header class="text-center space-y-2">
+            <h1 class="text-3xl font-extrabold tracking-tight text-emerald-400">Smart Travel Multi-Agent Assistant ✈️</h1>
+            <p class="text-slate-400 text-sm max-w-xl mx-auto">
+                Watch specialized AI personas collaborate in real-time-replacing overwhelmed generalist prompts with targeted research, dynamic tool pricing, and strict financial auditing.
+            </p>
+        </header>
+
+        <!-- Input Control Panel -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <h2 class="text-lg font-semibold text-slate-200">Trip Parameters</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Destination</label>
+                    <input id="destination" type="text" value="Tokyo" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" />
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Max Budget ($)</label>
+                    <input id="maxBudget" type="number" value="1200" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" />
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Duration (Days)</label>
+                    <input id="days" type="number" value="4" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" />
+                </div>
+            </div>
+            <button onclick="startWorkflowStream()" id="submitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-emerald-900/35">
+                Launch Multi-Agent Pipeline 🚀
+            </button>
+        </div>
+
+        <!-- Real-Time Output Console -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4" >
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-slate-200">Live Execution Feed</h2>
+                <span id="statusBadge" class="px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-400">Idle</span>
+            </div>
+            <div id="outputConsole" class="w-full h-80 bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-y-auto font-mono text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                Awaiting workflow execution... Click launch above to start streaming.
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        async function startWorkflowStream() {
+            const destination = document.getElementById('destination').value;
+            const maxBudget = parseFloat(document.getElementById('maxBudget').value);
+            const days = parseInt(document.getElementById('days').value);
+
+            const consoleDiv = document.getElementById('outputConsole');
+            const statusBadge = document.getElementById('statusBadge');
+            const submitBtn = document.getElementById('submitBtn');
+
+            consoleDiv.innerHTML = "";
+            statusBadge.textContent = "Running agents...";
+            statusBadge.className = "px-3 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400 animate-pulse";
+            submitBtn.disabled = true;
+            submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+            try {
+                const response = await fetch("/api/travel/stream", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ destination, maxBudget, days })
+                });
+
+                if (!response.ok) throw new Error("Server error during streaming execution");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n\n");
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataText = line.substring(6);
+                            if (dataText === "[DONE]") {
+                                statusBadge.textContent = "Completed Successfully";
+                                statusBadge.className = "px-3 py-1 text-xs rounded-full bg-emerald-500 text-slate-950 font-bold";
+                                break;
+                            }
+                            // Replace escaped newlines back to acrual formatting
+                            consoleDiv.innerHTML += dataText.replace(/\\n/g, "\n");
+                            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                        }
+                    }
+                }
+            } catch (error) {
+                consoleDiv.innerHTML += `\n[ERROR]: ${error.message}`;
+                statusBadge.textContent = "Failed";
+                statusBadge.className = "px-3 py-1 text-xs rounded-full bg-rose-500/20 text-rose-400";
+            } finally {
+                submitBtn.disabled = false
+                submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            }
+        }
+    </script>
+</body>
+</html>

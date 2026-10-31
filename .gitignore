@@ -1,0 +1,43 @@
+# ==========================================
+# Visual Studio & IDE Files
+# ==========================================
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =======================================
+# Build & Output Directories
+# =======================================
+[Bb]in/
+[0o]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+
+# ====================================
+# ASP.NET Core & Enviroment Secrets
+# ====================================
+# Ignore local enviroment files if you decide to use them
+.env
+
+# Ignore local configurations overrides that might contain API keys/connection strings
+appsettings.json
+appsettings.Development.json
+appsettings.Local.json
+
+# .NET User Secrets
+secrets.json
+
+# =========================================
+# OS Generated Files
+# ========================================
+
+Thumbs.db
+ehthumbs.db
+Desjtop.ini
+$RECYCLE.BIN/
+.DS_Store
