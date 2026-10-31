@@ -49,6 +49,8 @@ To eliminate "blind trust" in AI-generated travel plans, this application implem
 Policy Service Layer (ICompliancePolicyService): Abstracted service interface implemented via SQLCompliancePolicyService to query internal company rules, tier-based destination allowances, and spending caps.
 Compliance Auditor Agent: Specialized agent (compliance-auditor) equipped with a dynamic tool (check_company_policy) that evaluates the generated itinerary cost against live database records before issuing a verdict.
 Automated Review & Dead-Letter Routing: If a trip request exceeds corporate thresholds or violates policy rules, the system flags the payload and routes it to a secure management review queue.
+
+
 💻 Service Registration Example (Program.cs)
 C#
 // Register database-backed compliance policy services
