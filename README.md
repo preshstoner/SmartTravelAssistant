@@ -40,3 +40,30 @@ dotnet run
 Test the workflow endpoint:
 PowerShell
 Invoke-RestMethod -Uri "http://localhost:5234/api/travel/plan" -Method POST -ContentType "application/json" -Body '{"destination": "Tokyo", "maxBudget": 1200, "days": 4}'
+
+
+🛡️ Enterprise Financial & Compliance Approval Workflows
+To eliminate "blind trust" in AI-generated travel plans, this application implements a database-backed Financial & Compliance Approval Workflow. Instead of relying purely on an agent's internal assumptions, trip budgets and parameters are cross-checked against hard corporate policy rules via Dependency Injection.
+
+🏗️ Compliance Architecture & Workflow
+Policy Service Layer (ICompliancePolicyService): Abstracted service interface implemented via SQLCompliancePolicyService to query internal company rules, tier-based destination allowances, and spending caps.
+Compliance Auditor Agent: Specialized agent (compliance-auditor) equipped with a dynamic tool (check_company_policy) that evaluates the generated itinerary cost against live database records before issuing a verdict.
+Automated Review & Dead-Letter Routing: If a trip request exceeds corporate thresholds or violates policy rules, the system flags the payload and routes it to a secure management review queue.
+💻 Service Registration Example (Program.cs)
+C#
+// Register database-backed compliance policy services
+builder.Services.AddSingleton<ICompliancePolicyService, SQLCompliancePolicyService>();
+
+// Configure specialized compliance auditing agent with DI tool binding
+builder.AddAIAgent(
+    "compliance-auditor",
+    instructions: "You are a corporate compliance auditor. You MUST use the check_company_policy tool to evaluate trip details against internal database rules.")
+    .WithAITool(sp =>
+    {
+        var policyService = sp.GetRequiredService<ICompliancePolicyService>();
+        return AIFunctionFactory.Create(
+            async (string destination, decimal requestedBudget) => 
+                await policyService.EvaluatePolicyAsync(destination, requestedBudget),
+            "check_company_policy",
+            "Cross-references trip budget and destination against internal company database compliance policies.");
+    });
