@@ -40,6 +40,23 @@ builder.Services.AddSingleton<IChatClient>(sp =>
 // Register Domain Services for Tools[cite: 1]
 builder.Services.AddSingleton<ITravelBookingService, TravelBookingService>();
 
+// Register your database or compliance policy service
+builder.Services.AddSingleton<ICompliancePolicyService, SQLCompliancePolicyService>();
+
+builder.AddAIAgent(
+    "compliance-auditor",
+    instructions: "You are to corporate compliance auditor. You MUST use the check_company_policy tool to evaluate the trip details against internal database rules before giving a final verdict.")
+    .WithAITool(sp =>
+    {
+        // ✅ Use GetRequiredService for normal sigletons instead of GetKeyedServices
+        var policyService = sp.GetRequiredService<ICompliancePolicyService>();
+        return AIFunctionFactory.Create(
+            async (string destination, decimal requestedBudget) => await policyService.EvaluatePolicyAsync(destination, requestedBudget),
+            "check_company_policy",
+            "Cross-references the trip budget and destination against internal company database compliance policies."
+        );
+    });
+
 // Register Individual Specialized Agents[cite: 1]
 builder.AddAIAgent(
     "destination-researcher",
@@ -168,6 +185,24 @@ public class TravelBookingService : ITravelBookingService
         //Mocked response from a real flight/hotel GDS API
         return Task.FromResult(
             $"[API Match for {destination}] Flight: $450 round-trip. Hotel: 'Grand Central Inn' at $120/night. Estimated 3-night total: $810.");
+    }
+}
+
+public interface ICompliancePolicyService
+{
+    Task<string> EvaluatePolicyAsync(string destination, decimal requestedBudget);
+}
+
+public class SQLCompliancePolicyService : ICompliancePolicyService
+{
+    public Task<string> EvaluatePolicyAsync(string destination, decimal requestedBudget)
+    {
+        // Mock compliance check logic (can be replaced with EF Core database queries)
+        if (requestedBudget > 1500)
+        {
+            return Task.FromResult("VIOLATION_DETECTED: Requested budget exceeds internal corporate limit of $1,500.");
+        }
+        return Task.FromResult("APPROVED: Budget complies with internal company travel policy.");
     }
 }
 
